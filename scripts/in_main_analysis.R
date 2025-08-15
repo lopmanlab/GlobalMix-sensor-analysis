@@ -5,7 +5,6 @@
 in_part <- readRDS(here("India/in_participant.RDS"))
 in_contact <- readRDS(here("India/in_contact.RDS"))
 in_part_full <- readRDS(here("India/in_participant_full.RDS"))
-in_cont_full <- readRDS(here("India/in_contact_full.RDS"))
 in_sensor <- readRDS(here("India/in_sensor.RDS"))
 
 
@@ -554,3 +553,60 @@ ggplot(data = in.rel.method.comp, aes(x = inferred_relationship, fill = method))
         legend.title = element_text(size = 20),
         title = element_text(size = 20))+
   labs(title = "India",x = "Contact's relationship to participant", y = "Proportion", fill = "Method") -> in.method.plot.rel
+
+
+# Logistic regression ----------------------------------------------------------------------------------------
+## Make the measurements binary variable
+in.part.ext <- in_part_full%>%
+  select(rec_id, participant_age, participant_sex)
+
+## Model
+in.method.bin <- in.rel.method.comp%>%
+  mutate(participant_id = case_when(!is.na(participant_id.x) ~ participant_id.x,
+                                    !is.na(participant_id.y) ~ participant_id.y,
+                                    TRUE ~ NA),
+         contact_id = case_when(!is.na(contact_id.x) ~ contact_id.x,
+                                !is.na(contact_id.y) ~ contact_id.y,
+                                TRUE ~ NA),
+         hh_id = case_when(!is.na(hh_id.x) ~ hh_id.x,
+                           !is.na(hh_id.y) ~ hh_id.y,
+                           TRUE ~ NA))%>%
+  select(participant_id, contact_id, hh_id, participant_contact_id, inferred_relationship, method)%>%
+  left_join(in.part.ext, by = c("contact_id" = "rec_id"))%>%
+  rename(contact_age = participant_age,
+         contact_sex = participant_sex)%>%
+  left_join(in.part.ext, by = c("participant_id" = "rec_id"))%>%
+  # mutate(participant_age = case_when(participant_age == "<6mo" ~ "<5y",
+  #                                    participant_age == "6-11mo" ~ "<5y",
+  #                                    participant_age == "1-4y" ~ "<5y",
+  #                                    participant_age == "5-9y" ~ "5-19y",
+  #                                    participant_age == "10-14y" ~ "5-19y",
+  #                                    participant_age == "15-19y" ~ "5-19y",
+  #                                    participant_age == "20-29y" ~ "20-59y",
+  #                                    participant_age == "30-39y" ~ "20-59y",
+  #                                    participant_age == "40-59y" ~ "20-59y",
+  #                                    participant_age == "60+y" ~ "60+y",
+  #                                    TRUE ~ NA),
+  #        contact_age = case_when(contact_age == "<6mo" ~ "<5y",
+  #                                contact_age == "6-11mo" ~ "<5y",
+  #                                contact_age == "1-4y" ~ "<5y",
+  #                                contact_age == "5-9y" ~ "5-19y",
+  #                                contact_age == "10-14y" ~ "5-19y",
+  #                                contact_age == "15-19y" ~ "5-19y",
+  #                                contact_age == "20-29y" ~ "20-59y",
+  #                                contact_age == "30-39y" ~ "20-59y",
+  #                                contact_age == "40-59y" ~ "20-59y",
+  #                                contact_age == "60+y" ~ "60+y",
+  #                                TRUE ~ NA),
+  #        participant_age = factor(participant_age, levels = c("<5y", "5-19y", "20-59y", "60+y")),
+  #        contact_age = factor(contact_age, levels = c("<5y", "5-19y", "20-59y", "60+y")))%>%
+  mutate(method_bin = case_when(method == "Both" ~ 0,
+                                method == "Diary only" ~ 1,
+                                method == "Sensor only" ~ 1,
+                                TRUE ~ NA))
+
+in.log.model <- glm(method_bin ~ participant_age + participant_sex + contact_age + contact_sex + inferred_relationship,
+                 data = in.method.bin,
+                 family = binomial)
+
+summary(in.log.model)
