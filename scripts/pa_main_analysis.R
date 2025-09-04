@@ -261,8 +261,12 @@ pa.con.sum <- pa.unique.con.long %>%
   summarise(
     mean_contacts = mean(contacts),
     sd_contacts = sd(contacts),
-    total_contacts = sum(contacts)
-  )
+    total_contacts = sum(contacts),
+    n = n()
+  )%>%
+  mutate(se = sd_contacts / sqrt(n),
+         lower = mean_contacts - 1.96 * se,
+         upper = mean_contacts + 1.96 * se)
 
 ### Calculate p-value for paired t-test for mean number of contacts comparison ----
 t_result <- t.test(pa.unique.con$Diary, pa.unique.con$Sensor, paired = T)
@@ -535,39 +539,51 @@ pa.method.bin <- pa.rel.method.comp%>%
   rename(contact_age = participant_age,
          contact_sex = participant_sex)%>%
   left_join(pa.part.ext, by = c("participant_id" = "rec_id"))%>%
-  # mutate(participant_age = case_when(participant_age == "<6mo" ~ "<5y",
-  #                                    participant_age == "6-11mo" ~ "<5y",
-  #                                    participant_age == "1-4y" ~ "<5y",
-  #                                    participant_age == "5-9y" ~ "5-19y",
-  #                                    participant_age == "10-14y" ~ "5-19y",
-  #                                    participant_age == "15-19y" ~ "5-19y",
-  #                                    participant_age == "20-29y" ~ "20-59y",
-  #                                    participant_age == "30-39y" ~ "20-59y",
-  #                                    participant_age == "40-59y" ~ "20-59y",
-  #                                    participant_age == "60+y" ~ "60+y",
-  #                                    TRUE ~ NA),
-#        contact_age = case_when(contact_age == "<6mo" ~ "<5y",
-#                                contact_age == "6-11mo" ~ "<5y",
-#                                contact_age == "1-4y" ~ "<5y",
-#                                contact_age == "5-9y" ~ "5-19y",
-#                                contact_age == "10-14y" ~ "5-19y",
-#                                contact_age == "15-19y" ~ "5-19y",
-#                                contact_age == "20-29y" ~ "20-59y",
-#                                contact_age == "30-39y" ~ "20-59y",
-#                                contact_age == "40-59y" ~ "20-59y",
-#                                contact_age == "60+y" ~ "60+y",
-#                                TRUE ~ NA),
-#        participant_age = factor(participant_age, levels = c("<5y", "5-19y", "20-59y", "60+y")),
-#        contact_age = factor(contact_age, levels = c("<5y", "5-19y", "20-59y", "60+y")))%>%
-mutate(method_bin = case_when(method == "Both" ~ 0,
-                              method == "Diary only" ~ 1,
-                              method == "Sensor only" ~ 1,
-                              TRUE ~ NA))
+  mutate(participant_age = case_when(participant_age == "<6mo" ~ "<5y",
+                                     participant_age == "6-11mo" ~ "<5y",
+                                     participant_age == "1-4y" ~ "<5y",
+                                     participant_age == "5-9y" ~ "5-19y",
+                                     participant_age == "10-14y" ~ "5-19y",
+                                     participant_age == "15-19y" ~ "5-19y",
+                                     participant_age == "20-29y" ~ "20-29y",
+                                     participant_age == "30-39y" ~ "30+y",
+                                     participant_age == "40-59y" ~ "30+y",
+                                     participant_age == "60+y" ~ "30+y",
+                                     TRUE ~ NA),
+         contact_age = case_when(contact_age == "<6mo" ~ "<5y",
+                                 contact_age == "6-11mo" ~ "<5y",
+                                 contact_age == "1-4y" ~ "<5y",
+                                 contact_age == "5-9y" ~ "5-19y",
+                                 contact_age == "10-14y" ~ "5-19y",
+                                 contact_age == "15-19y" ~ "5-19y",
+                                 contact_age == "20-29y" ~ "20-29y",
+                                 contact_age == "30-39y" ~ "30+y",
+                                 contact_age == "40-59y" ~ "30+y",
+                                 contact_age == "60+y" ~ "30+y",
+                                 TRUE ~ NA),
+         participant_age = factor(participant_age, levels = c("<5y", "5-19y", "20-29y", "30+y")),
+         contact_age = factor(contact_age, levels = c("<5y", "5-19y", "20-29y", "30+y")))%>%
+  mutate(diary_bin = case_when(method == "Both" ~ 0,
+                               method == "Diary only" ~ 1,
+                               method == "Sensor only" ~ 0,
+                               TRUE ~ NA),
+         sensor_bin = case_when(method == "Both" ~ 0,
+                                method == "Diary only" ~ 0,
+                                method == "Sensor only" ~ 1,
+                                TRUE ~ NA))
 
-pa.log.model <- glm(method_bin ~ participant_age + participant_sex + contact_age + contact_sex 
-                    #+ inferred_relationship
-                    ,
-                    data = pa.method.bin,
-                    family = binomial)
+pa.log.diary.model <- glm(diary_bin ~ participant_age + participant_sex + contact_age + contact_sex + inferred_relationship,
+                          data = pa.method.bin,
+                          family = binomial)
 
-summary(pa.log.model)
+pa.log.sensor.model <- glm(sensor_bin ~ participant_age + participant_sex + contact_age + contact_sex + inferred_relationship,
+                           data = pa.method.bin,
+                           family = binomial)
+
+summary(pa.log.diary.model)
+exp(coef(pa.log.diary.model))
+exp(confint(pa.log.diary.model))
+
+summary(pa.log.sensor.model)
+exp(coef(pa.log.sensor.model))
+exp(confint(pa.log.sensor.model))

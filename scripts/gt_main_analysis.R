@@ -1,5 +1,4 @@
 # GlobalMix sensor analysis - Guatemala
-## Machi Shiiba
 
 # Load dataset ----
 gt_part <- readRDS(here("Guatemala/gt_participant.RDS"))
@@ -274,8 +273,12 @@ gt.con.sum <- gt.unique.con.long %>%
   summarise(
     mean_contacts = mean(contacts),
     sd_contacts = sd(contacts),
-    total_contacts = sum(contacts)
-  )
+    total_contacts = sum(contacts),
+    n = n()
+  )%>%
+  mutate(se = sd_contacts / sqrt(n),
+         lower = mean_contacts - 1.96 * se,
+         upper = mean_contacts + 1.96 * se)
 
 ### Calculate p-value for paired t-test for mean number of contacts comparison ----
 t_result <- t.test(gt.unique.con$Diary, gt.unique.con$Sensor, paired = T)
@@ -593,10 +596,10 @@ gt.method.bin <- gt.rel.method.comp%>%
                                      participant_age == "5-9y" ~ "5-19y",
                                      participant_age == "10-14y" ~ "5-19y",
                                      participant_age == "15-19y" ~ "5-19y",
-                                     participant_age == "20-29y" ~ "20-59y",
-                                     participant_age == "30-39y" ~ "20-59y",
-                                     participant_age == "40-59y" ~ "20-59y",
-                                     participant_age == "60+y" ~ "60+y",
+                                     participant_age == "20-29y" ~ "20-29y",
+                                     participant_age == "30-39y" ~ "30+y",
+                                     participant_age == "40-59y" ~ "30+y",
+                                     participant_age == "60+y" ~ "30+y",
                                      TRUE ~ NA),
          contact_age = case_when(contact_age == "<6mo" ~ "<5y",
                                  contact_age == "6-11mo" ~ "<5y",
@@ -604,125 +607,34 @@ gt.method.bin <- gt.rel.method.comp%>%
                                  contact_age == "5-9y" ~ "5-19y",
                                  contact_age == "10-14y" ~ "5-19y",
                                  contact_age == "15-19y" ~ "5-19y",
-                                 contact_age == "20-29y" ~ "20-59y",
-                                 contact_age == "30-39y" ~ "20-59y",
-                                 contact_age == "40-59y" ~ "20-59y",
-                                 contact_age == "60+y" ~ "60+y",
+                                 contact_age == "20-29y" ~ "20-29y",
+                                 contact_age == "30-39y" ~ "30+y",
+                                 contact_age == "40-59y" ~ "30+y",
+                                 contact_age == "60+y" ~ "30+y",
                                  TRUE ~ NA),
-         participant_age = factor(participant_age, levels = c("<5y", "5-19y", "20-59y", "60+y")),
-         contact_age = factor(contact_age, levels = c("<5y", "5-19y", "20-59y", "60+y")))%>%
-  mutate(method_bin = case_when(method == "Both" ~ 0,
+         participant_age = factor(participant_age, levels = c("<5y", "5-19y", "20-29y", "30+y")),
+         contact_age = factor(contact_age, levels = c("<5y", "5-19y", "20-29y", "30+y")))%>%
+  mutate(diary_bin = case_when(method == "Both" ~ 0,
                                 method == "Diary only" ~ 1,
+                                method == "Sensor only" ~ 0,
+                                TRUE ~ NA),
+         sensor_bin = case_when(method == "Both" ~ 0,
+                                method == "Diary only" ~ 0,
                                 method == "Sensor only" ~ 1,
                                 TRUE ~ NA))
 
-gt.log.model <- glm(method_bin ~ participant_age + participant_sex + contact_age + contact_sex + inferred_relationship,
+gt.log.diary.model <- glm(diary_bin ~ participant_age + participant_sex + contact_age + contact_sex + inferred_relationship,
                  data = gt.method.bin,
                  family = binomial)
 
-summary(gt.log.model)
+gt.log.sensor.model <- glm(sensor_bin ~ participant_age + participant_sex + contact_age + contact_sex + inferred_relationship,
+                          data = gt.method.bin,
+                          family = binomial)
 
+summary(gt.log.diary.model)
+exp(coef(gt.log.diary.model))
+exp(confint(gt.log.diary.model))
 
-## Maybe combining the age groups is working???
-
-
-## Penalized logistic regression model ---------------------------------------
-## Outcome is too imbalanced so let's try penalized logistic regression model
-
-# --- 1. Clean data: handle NAs ---
-gt.method.bin2 <- gt.method.bin %>%
-  filter(!is.na(method_bin)) %>%
-  mutate(
-    # Convert all predictors to character
-    participant_age = as.character(participant_age),
-    participant_sex = as.character(participant_sex),
-    contact_age = as.character(contact_age),
-    contact_sex = as.character(contact_sex),
-    inferred_relationship = as.character(inferred_relationship),
-    
-    # Replace NA with "unknown"
-    participant_age = ifelse(is.na(participant_age), "unknown", participant_age),
-    participant_sex = ifelse(is.na(participant_sex), "unknown", participant_sex),
-    contact_age = ifelse(is.na(contact_age), "unknown", contact_age),
-    contact_sex = ifelse(is.na(contact_sex), "unknown", contact_sex),
-    inferred_relationship = ifelse(is.na(inferred_relationship), "unknown", inferred_relationship)
-  )
-
-# --- 2. Prepare X and y ---
-y <- as.numeric(gt.method.bin2$method_bin) - 1
-X <- model.matrix(method_bin ~ participant_age + participant_sex +
-                    contact_age + contact_sex +
-                    inferred_relationship,
-                  data = gt.method.bin2)[, -1]  # remove intercept
-
-# --- 3. Tune alpha (mixture) & lambda via CV ---
-alpha_values <- c(0, 0.5, 1) # ridge, elastic net, lasso
-cv_results <- lapply(alpha_values, function(a) {
-  set.seed(123)
-  cv <- cv.glmnet(X, y, family = "binomial", alpha = a, nfolds = 10)
-  list(alpha = a, cv = cv, lambda_min = cv$lambda.min, auc = max(cv$cvm))
-})
-
-best <- cv_results[[which.max(sapply(cv_results, function(x) x$auc))]]
-best_alpha <- best$alpha
-best_lambda <- best$lambda_min
-
-# --- 4. Fit final penalized logistic regression ---
-final_fit <- glmnet(X, y, family = "binomial", alpha = best_alpha, lambda = best_lambda)
-
-# --- 5. Extract coefficients & odds ratios for all levels ---
-coef_df_all <- data.frame(
-  term = rownames(coef(final_fit))[-1],
-  estimate = as.vector(coef(final_fit))[-1]
-) %>%
-  mutate(
-    odds_ratio = exp(estimate),
-    selected = estimate != 0
-  )
-
-coef_df_all
-
-# --- 6. Bootstrap for CIs ---
-boot_fun <- function(data, indices) {
-  Xb <- X[indices, ]
-  yb <- y[indices]
-  fit <- glmnet(Xb, yb, family = "binomial", alpha = best_alpha, lambda = best_lambda)
-  as.vector(coef(fit))[-1]  # exclude intercept
-}
-
-set.seed(123)
-boot_res <- boot(data = gt.method.bin2, statistic = boot_fun, R = 500)
-
-# Compute percentile CIs
-coef_names <- rownames(coef(final_fit))[-1]
-boot_cis <- t(sapply(1:ncol(X), function(i) {
-  ci <- boot.ci(boot_res, type = "perc", index = i)
-  c(lower = ci$percent[4], upper = ci$percent[5])
-}))
-
-coef_df_ci <- coef_df_all %>%
-  mutate(
-    OR_lower = exp(boot_cis[, "lower"]),
-    OR_upper = exp(boot_cis[, "upper"])
-  )
-
-coef_df_ci
-
-# --- 7. Variable importance plot ---
-# Summarize importance by original predictor (sum absolute coefficient across levels)
-vi_df <- coef_df_all %>%
-  mutate(variable = gsub("\\d+$", "", term)) %>%  # remove numeric suffix from dummy names
-  group_by(variable) %>%
-  summarize(importance = sum(abs(estimate))) %>%
-  arrange(desc(importance))
-
-ggplot(vi_df, aes(x = reorder(variable, importance), y = importance)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(x = "Predictor", y = "Variable Importance",
-       title = "Variable Importance (Elastic Net Logistic Regression)")
-
-## Not sure how reliable this is, and OR seems a bit off (very big with wide CI)
-
-## Relogit (Rare events logistic regression method) -------------------------------
-
+summary(gt.log.sensor.model)
+exp(coef(gt.log.sensor.model))
+exp(confint(gt.log.sensor.model))
