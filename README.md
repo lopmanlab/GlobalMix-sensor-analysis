@@ -1,15 +1,18 @@
 # GlobalMix-sensor-analysis
 
 **Contributors** <br/>
-Machi Shiiba <sup>1</sup>, Moses C Kiti <sup>1</sup>, Obianuju Aguolu <sup>2</sup>, Noureen Ahmed <sup>3</sup>, Charfudin Sacoor <sup>4</sup>, Herberth Maldonado <sup>5</sup>, Rajan Srinivasan <sup>6</sup>, Venkata Raghava <sup>6</sup>, Momin Kazi <sup>7</sup>, Fauzia Malik <sup>3</sup>, Benjamin A Lopman <sup>1</sup>, Saad B Omer <sup>3</sup>, Kristin N Nelson <sup>1</sup>
+Machi Shiiba <sup>1</sup>, Moses C Kiti <sup>1</sup>, Obianuju Aguolu <sup>2</sup>, Noureen Ahmed <sup>3</sup>, Charfudin Sacoor <sup>4</sup>, Ivalda Macicame <sup>5</sup>, Edgar Jamisse <sup>4</sup>, Corssino Tchavana <sup>4</sup>, Orvalho Augusto <sup>4</sup>, Americo Jose <sup>5</sup>, Migdalia Wamba <sup>5, 6</sup>, Nilzio Cavele <sup>5, 6</sup>, Azucena Bardaji <sup>7</sup>, Herberth Maldonado <sup>8</sup>, Rajan Srinivasan <sup>9</sup>, Venkata Raghava <sup>9</sup>, Momin Kazi <sup>10</sup>, Raheel Allana <sup>10</sup>, Fauzia Malik <sup>3</sup>, Benjamin A Lopman <sup>1</sup>, Saad B Omer <sup>3</sup>, Kristin N Nelson <sup>1</sup>
 
 *<sup>1</sup> Emory University Rollins School of Public Health, Atlanta, GA, USA* <br/>
 *<sup>2</sup> The Ohio State University, Columbus, Ohio, USA* <br/>
 *<sup>3</sup> Peter O'Donnell Jr. School of Public Health, UT Southwestern Medical Center, Dallas, TX, USA* <br/>
 *<sup>4</sup> Manhiça Health Research Institute, Manhiça, Mozambique* <br/>
-*<sup>5</sup> Universidad del Valle de Guatemala, Guatemala City, Guatemala* <br/>
-*<sup>6</sup> Christian Medical College, Vellore, Tmil Nadu, India* <br/>
-*<sup>7</sup> The Aga Khan University, Karachi, Pakistan* <br/>
+*<sup>5</sup> Polana Caniço Health Research Centre, Maputo, Mozambique* <br/>
+*<sup>6</sup> Instituto Nacional de Saúde, Maputo, Mozambique* <br/>
+*<sup>7</sup> Barcelona Institute for Global Health, Barcelona, Spain* <br/>
+*<sup>8</sup> Universidad del Valle de Guatemala, Guatemala City, Guatemala* <br/>
+*<sup>9</sup> Christian Medical College, Vellore, Tmil Nadu, India* <br/>
+*<sup>10</sup> The Aga Khan University, Karachi, Pakistan* <br/>
 
 *Correspondence to Ben Lopman (blopman@emory.edu)*
 
