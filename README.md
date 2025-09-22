@@ -27,10 +27,10 @@ Folders are arranged as follows.
 3. Mozambique
 4. Pakistan
 5. Scripts
-6. Codebook (will be added)
+6. Questionnaires
 
 Each country folder contains 'participant', 'participant_full', 'contact', 'contact_full', 'sensor' datasets, which contain information about the study participants and their reported contacts in diary and in sensor. 
-The scripts folder has scripts used for the analysis of the "Comparison of contact diaries and wearable proximity sensors in measuring household contacts in low- and middle-income countries". The Codebook folder contains codebooks explaining the variables in the datasets.
+The scripts folder has scripts used for the analysis of the "Comparison of contact diaries and wearable proximity sensors in measuring household contacts in low- and middle-income countries". The Questionnaires folder contains English version of survey questionnaires used at each site.
 
 The datasets are named as follows;
 - country-code_participant.RDS
